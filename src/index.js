@@ -1,18 +1,21 @@
-const token = "6535928824:AAHqQbIZtbvMJmmDnTSSxMnQlhUrp_qgfi0";
+
+const { OpenAI } = require("openai");
 const TelegramApi = require('node-telegram-bot-api');
+const { profileQuestions, choiceQuestions, needAdviceQuestions } = require('./questions');
 const bot = new TelegramApi(token, { polling: true });
+
+const openai = new OpenAI({
+    apiKey: openAIKey
+});
 
 const answerOptions = {
     reply_markup: JSON.stringify({
         inline_keyboard: [
-            [{ text: 'Yes', callback_data: 'Yes' }, { text: 'Not sure', callback_data: 'Not sure' }, { text: 'No', callback_data: 'No' }],
+            [{ text: 'Never', callback_data: 'Never' }, { text: 'Sometimes', callback_data: 'Sometimes' }, { text: 'Often', callback_data: 'Often' }],
         ],
     }),
 };
 
-const profileQuestions = ["Do you love animals?", "Do you think that you are positive person?", "Is family important to you?"];
-const choiceQuestions = ["What is A option?", "What is B option?"];
-const needAdviceQuestions = ["What do you need advice with?", "Why is it important for you?"];
 const userProfile = {};
 const choiceInfo = {};
 const adviceInfo = {};
@@ -29,12 +32,14 @@ bot.on('message', async msg => {
     } else if (text === '/make_choice') {
         if (isProfileComplete(chatId)) {
             await handleQuestionCommand(chatId, choiceQuestions, choiceInfo, 'choice', false);
+            await speekWithGPT(chatId, 'choice')
         } else {
             await bot.sendMessage(chatId, "Sorry, but you need to fill your profile first. Please, use `/create_profile` command");
         }
     } else if (text === '/need_advice') {
         if (isProfileComplete(chatId)) {
             await handleQuestionCommand(chatId, needAdviceQuestions, adviceInfo, 'advice', false);
+            await speekWithGPT(chatId, 'advice')
         } else {
             await bot.sendMessage(chatId, "Sorry, but you need to fill your profile first. Please, use `/create_profile` command");
         }
@@ -123,6 +128,42 @@ function isProfileComplete(chatId) {
     if (!profile) return false;
 
     return profileQuestions.every(question => profile[question]);
+}
+
+function generateChatGptMessage(chatId, type) {
+    let message = "Please, act as the closest and kindest friend of a person who ";
+
+    for (const question in userProfile[chatId]) {
+        const answer = userProfile[chatId][question];
+        const modifiedQuestion = question.replace("I", answer);
+        message += modifiedQuestion + " ";
+    }
+
+    if (type === 'choice') {
+        message += `Please, helpfully answer ${choiceInfo[chatId][choiceQuestions[0]]} by selecting only one option from ${choiceInfo[chatId][choiceQuestions[1]]} and ${choiceInfo[chatId][choiceQuestions[2]]}. `
+        message += `Acting as this friend, please, select only one option to answer a question. Please, keep the answer in 1-2 sentences.`;
+    } else if (type === 'advice') {
+        const adviceResponses = needAdviceQuestions.map(question => adviceInfo[chatId][question]);
+        message += `Acting as this friend, please, give a piece of advice for the situation about which you certainly know that ${adviceResponses.join(" and ")}? Please, keep the answer in 1-2 sentences.`;
+    }
+
+    return message;
+}
+
+
+async function speekWithGPT(chatId, type) {
+    try {
+        const gptResponse = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [{role: 'system', content: generateChatGptMessage(chatId, type)}]
+        });
+        console.log(generateChatGptMessage(chatId, type));
+        // console.log(gptResponse.choices[0])
+        await bot.sendMessage(chatId, gptResponse.choices[0].message.content);
+    } catch (error) {
+        console.error("Error querying OpenAI:", error);
+        await bot.sendMessage(chatId, "There was an error processing your request.");
+    }
 }
 
 bot.setMyCommands([
