@@ -59,7 +59,7 @@ async function handleQuestionCommand(chatId, questions, infoObject, type, useBut
 }
 
 async function askForRating(chatId, type) {
-    await bot.sendMessage(chatId, "How would you rate my answer?", rateOptions);
+    await bot.sendMessage(chatId, 'How would you rate my answer?\nFrom `1 not satisfied at all` to `5 very satisfied`', rateOptions);
     await waitForRating(chatId, type);
 }
 
