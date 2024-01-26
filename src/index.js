@@ -72,7 +72,7 @@ async function waitForRating(chatId, type) {
                 if (!marks[chatId][type]) marks[chatId][type] = [];
                 marks[chatId][type].push(parseInt(callbackQuery.data));
 
-                bot.editMessageText(`You have chosen: ${callbackQuery.data}. Data saved. Thanks.`, {
+                bot.editMessageText(`You have chosen: ${callbackQuery.data}`, {
                     chat_id: chatId,
                     message_id: callbackQuery.message.message_id
                 });
@@ -128,7 +128,7 @@ function waitForUserResponse(chatId, question, infoObject, useButtons) {
                     bot.removeListener('callback_query', callbackQueryHandler);
                     infoObject[chatId][question] = callbackQuery.data;
 
-                    bot.editMessageText(`${question}: ${callbackQuery.data}. Data saved. Thanks.`, {
+                    bot.editMessageText(`${question}: ${callbackQuery.data}.`, {
                         chat_id: chatId,
                         message_id: callbackQuery.message.message_id
                     });

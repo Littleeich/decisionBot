@@ -12,7 +12,7 @@ const choiceQuestions = [
 ];
 const needAdviceQuestions = [
     "What options are there? ", 
-    "Are there any other options that you can't see now?",
+    "What would you notice if you'd look on this situation just 5% more attentively?",
     "What is important to you in this case?"
 ];
 
